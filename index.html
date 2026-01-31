@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Cost Optimizer - CFO Dashboard</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --midnight: #0a0e27;
+      --slate: #1a1f3a;
+      --steel: #2d3454;
+      --frost: #e8edf5;
+      --ice: #f5f8fc;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --crimson: #ef4444;
+      --sapphire: #3b82f6;
+      --violet: #8b5cf6;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--midnight) 0%, var(--slate) 100%);
+      color: var(--frost);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .app-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      margin-bottom: 3rem;
+      animation: slideDown 0.6s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--frost) 0%, var(--emerald) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--frost);
+      opacity: 0.7;
+      font-size: 1.1rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: rgba(42, 48, 78, 0.4);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(232, 237, 245, 0.1);
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      animation: fadeInUp 0.6s ease-out backwards;
+    }
+
+    .stat-card:nth-child(1) { animation-delay: 0.1s; }
+    .stat-card:nth-child(2) { animation-delay: 0.2s; }
+    .stat-card:nth-child(3) { animation-delay: 0.3s; }
+    .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .stat-card:hover {
+      border-color: rgba(232, 237, 245, 0.2);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--emerald), var(--sapphire));
+    }
+
+    .stat-card.savings::before {
+      background: linear-gradient(90deg, var(--emerald), var(--emerald));
+    }
+
+    .stat-card.cost::before {
+      background: linear-gradient(90deg, var(--amber), var(--crimson));
+    }
+
+    .stat-card.queries::before {
+      background: linear-gradient(90deg, var(--sapphire), var(--violet));
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-change {
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stat-change.positive {
+      color: var(--emerald);
+    }
+
+    .stat-change.negative {
+      color: var(--crimson);
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .chart-card {
+      background: rgba(42, 48, 78, 0.4);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(232, 237, 245, 0.1);
+      border-radius: 16px;
+      padding: 2rem;
+      animation: fadeInUp 0.6s ease-out 0.5s backwards;
+    }
+
+    .chart-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--frost);
+    }
+
+    .model-breakdown {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .model-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: rgba(232, 237, 245, 0.05);
+      border-radius: 8px;
+      border: 1px solid rgba(232, 237, 245, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .model-item:hover {
+      background: rgba(232, 237, 245, 0.08);
+      border-color: rgba(232, 237, 245, 0.2);
+    }
+
+    .model-name {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .model-badge {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .model-stats {
+      display: flex;
+      gap: 2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+    }
+
+    .model-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .model-stat-label {
+      opacity: 0.6;
+      font-size: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .model-stat-value {
+      font-weight: 600;
+    }
+
+    .cta-section {
+      background: linear-gradient(135deg, var(--emerald) 0%, var(--sapphire) 100%);
+      border-radius: 16px;
+      padding: 3rem;
+      text-align: center;
+      animation: fadeInUp 0.6s ease-out 0.7s backwards;
+    }
+
+    .cta-section h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: white;
+    }
+
+    .cta-section p {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      opacity: 0.95;
+      color: white;
+    }
+
+    .cta-button {
+      background: white;
+      color: var(--midnight);
+      border: none;
+      padding: 1rem 2.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .demo-badge {
+      display: inline-block;
+      background: var(--amber);
+      color: var(--midnight);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .app-container {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .stats-grid,
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-section {
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function Dashboard() {
+      const [analytics, setAnalytics] = useState({
+        totalCost: 12847.32,
+        totalSavings: 38542.18,
+        totalQueries: 145823,
+        avgLatency: 842,
+        models: [
+          { name: 'Claude Haiku', queries: 87234, cost: 2184.52, color: '#10b981', percentage: 60 },
+          { name: 'Claude Sonnet', queries: 45621, cost: 6842.31, color: '#3b82f6', percentage: 31 },
+          { name: 'GPT-4 Turbo', queries: 12968, cost: 3820.49, color: '#8b5cf6', percentage: 9 }
+        ]
+      });
+
+      const formatCurrency = (value) => {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD'
+        }).format(value);
+      };
+
+      const formatNumber = (value) => {
+        return new Intl.NumberFormat('en-US').format(value);
+      };
+
+      return (
+        <div className="app-container">
+          <header>
+            <div className="demo-badge">DEMO DASHBOARD</div>
+            <h1>AI Cost Optimizer</h1>
+            <p className="subtitle">Real-time insights into your AI spend and savings</p>
+          </header>
+
+          <div className="stats-grid">
+            <div className="stat-card savings">
+              <div className="stat-label">Total Savings</div>
+              <div className="stat-value">{formatCurrency(analytics.totalSavings)}</div>
+              <div className="stat-change positive">
+                ↑ 67% vs. GPT-4 only
+              </div>
+            </div>
+
+            <div className="stat-card cost">
+              <div className="stat-label">Current Spend</div>
+              <div className="stat-value">{formatCurrency(analytics.totalCost)}</div>
+              <div className="stat-change positive">
+                ↓ 24% vs. last month
+              </div>
+            </div>
+
+            <div className="stat-card queries">
+              <div className="stat-label">Total Queries</div>
+              <div className="stat-value">{formatNumber(analytics.totalQueries)}</div>
+              <div className="stat-change positive">
+                ↑ 156% vs. last month
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-label">Avg Latency</div>
+              <div className="stat-value">{analytics.avgLatency}ms</div>
+              <div className="stat-change positive">
+                ↓ 12% vs. last month
+              </div>
+            </div>
+          </div>
+
+          <div className="charts-grid">
+            <div className="chart-card">
+              <h3 className="chart-title">Model Distribution</h3>
+              <div className="model-breakdown">
+                {analytics.models.map((model, idx) => (
+                  <div key={idx} className="model-item">
+                    <div className="model-name">
+                      <span className="model-badge" style={{ backgroundColor: model.color }}></span>
+                      {model.name}
+                    </div>
+                    <div className="model-stats">
+                      <div className="model-stat">
+                        <div className="model-stat-label">Queries</div>
+                        <div className="model-stat-value">{formatNumber(model.queries)}</div>
+                      </div>
+                      <div className="model-stat">
+                        <div className="model-stat-label">Cost</div>
+                        <div className="model-stat-value">{formatCurrency(model.cost)}</div>
+                      </div>
+                      <div className="model-stat">
+                        <div className="model-stat-label">Share</div>
+                        <div className="model-stat-value">{model.percentage}%</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <h3 className="chart-title">Key Insights</h3>
+              <div className="model-breakdown">
+                <div className="model-item">
+                  <div className="model-name">
+                    <span className="model-badge" style={{ backgroundColor: '#10b981' }}></span>
+                    Cost Efficiency
+                  </div>
+                  <div className="model-stats">
+                    <div className="model-stat">
+                      <div className="model-stat-value">67% savings</div>
+                      <div className="model-stat-label">vs. premium models</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="model-item">
+                  <div className="model-name">
+                    <span className="model-badge" style={{ backgroundColor: '#3b82f6' }}></span>
+                    Smart Routing
+                  </div>
+                  <div className="model-stats">
+                    <div className="model-stat">
+                      <div className="model-stat-value">91% accuracy</div>
+                      <div className="model-stat-label">complexity detection</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="model-item">
+                  <div className="model-name">
+                    <span className="model-badge" style={{ backgroundColor: '#8b5cf6' }}></span>
+                    Performance
+                  </div>
+                  <div className="model-stats">
+                    <div className="model-stat">
+                      <div className="model-stat-value">842ms</div>
+                      <div className="model-stat-label">avg response time</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="cta-section">
+            <h2>Ready to optimize your AI costs?</h2>
+            <p>Start saving up to 70% on your AI spend while maintaining quality</p>
+            <button className="cta-button">Get API Access</button>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<Dashboard />, document.getElementById('root'));
+  </script>
+</body>
+</html>
